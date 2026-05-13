@@ -1,0 +1,607 @@
+TEST REPORT ON MANDATORY CASES
+================================
+
+Mandatory Test Case 1: Normal Start
+
+• Mode: OFF → ACC → IGNITION_ON
+• Speed: 40
+• Temp: 80
+• Gear: 1
+
+Expected: No faults, NORMAL state
+
+Actual:
+
+    --- NEW CYCLE ---
+
+    [Input] Enter Speed, Temp, Gear, Mode (0=OFF, 1=ACC, 2=IGN_ON, 3=FAULT): 40 80 1 2
+    [MAIN] Inputs read: speed=40 temp=80 gear=1 mode=2
+    [MAIN] Inputs validated: speed=40 temp=80 gear=1 mode=2
+    [MAIN] Mode updated: active=2 previous=1
+    [MAIN] Control checks done: cycle_flags=00000 priority=0
+    [MAIN] Fault status updated: persistent=00000
+    [MAIN] State evaluated: system_state=0
+
+    ---- CYCLE SUMMARY REPORT ---
+
+    [INPUT]
+      Speed         : 40 km/h
+      Temperature   : 80 C
+      Gear          : 1
+      Req. Mode     : IGNITION_ON
+
+    [MODE]
+      Active Mode   : IGNITION_ON
+      Current Mode  : IGNITION_ON
+      Previous Mode : ACC
+
+    [FAULTS]
+      Cycle Flags     : 00000 [ CLEAR ]
+      Persistent      : 00000 [ CLEAR ]
+      Major Faults    : 0
+      Warnings        : 0
+      Critical Faults : 0
+      Reset Requested : NO
+
+    [STATE]
+      System State : NORMAL
+
+    [WARNINGS]
+
+    [ACTIVE FAULTS - Priority Order]
+      (none)
+
+Observation: PASS
+
+--------------------------------------------------------------------------------
+
+Mandatory Test Case 2: Overspeed
+
+• Speed: 130
+• Temp: 85
+• Gear: 4
+• Mode: IGNITION_ON
+
+Expected: Overspeed detected, fault counter incremented, DEGRADED or warning behaviour as defined
+
+Actual:
+
+    --- NEW CYCLE ---
+
+    [Input] Enter Speed, Temp, Gear, Mode (0=OFF, 1=ACC, 2=IGN_ON, 3=FAULT): 135 85 4 2
+    [MAIN] Inputs read: speed=135 temp=85 gear=4 mode=2
+    [MAIN] Inputs validated: speed=135 temp=85 gear=4 mode=2
+    [MAIN] Mode updated: active=2 previous=2
+    [MAIN] Control checks done: cycle_flags=00001 priority=2
+    [MAIN] Fault status updated: persistent=00000
+    [STATE] Transition NORMAL -> DEGRADED : Major fault threshold reached (1 >= 1)
+    [MAIN] State evaluated: system_state=1
+
+    ---- CYCLE SUMMARY REPORT ---
+
+    [INPUT]
+      Speed         : 135 km/h
+      Temperature   : 85 C
+      Gear          : 4
+      Req. Mode     : IGNITION_ON
+
+    [MODE]
+      Active Mode   : IGNITION_ON
+      Current Mode  : IGNITION_ON
+      Previous Mode : IGNITION_ON
+
+    [FAULTS]
+      Cycle Flags     : 00001 [ OVERSPEED ]
+      Persistent      : 00000 [ CLEAR ]
+      Major Faults    : 1
+      Warnings        : 0
+      Critical Faults : 0
+      Reset Requested : NO
+
+    [STATE]
+      System State : DEGRADED
+
+    [WARNINGS]
+
+    [ACTIVE FAULTS - Priority Order]
+      3. OVERSPEED
+
+Observation: PASS
+
+--------------------------------------------------------------------------------
+
+Mandatory Test Case 3: High Temperature
+
+• Temp: 100
+
+Expected: High temperature warning, no crash, correct priority handling
+
+Actual:
+
+    --- NEW CYCLE ---
+
+    [Input] Enter Speed, Temp, Gear, Mode (0=OFF, 1=ACC, 2=IGN_ON, 3=FAULT): 80 100 3 2
+    [MAIN] Inputs read: speed=80 temp=100 gear=3 mode=2
+    [MAIN] Inputs validated: speed=80 temp=100 gear=3 mode=2
+    [MAIN] Mode updated: active=2 previous=1
+    [MAIN] Control checks done: cycle_flags=00100 priority=1
+    [MAIN] Fault status updated: persistent=00000
+    [MAIN] State evaluated: system_state=0
+
+    ---- CYCLE SUMMARY REPORT ---
+
+    [INPUT]
+      Speed         : 80 km/h
+      Temperature   : 100 C
+      Gear          : 3
+      Req. Mode     : IGNITION_ON
+
+    [MODE]
+      Active Mode   : IGNITION_ON
+      Current Mode  : IGNITION_ON
+      Previous Mode : ACC
+
+    [FAULTS]
+      Cycle Flags     : 00100 [ HIGH_TEMP ]
+      Persistent      : 00000 [ CLEAR ]
+      Major Faults    : 0
+      Warnings        : 1
+      Critical Faults : 0
+      Reset Requested : NO
+
+    [STATE]
+      System State : NORMAL
+
+    [WARNINGS]
+      WARNING: HIGH TEMP
+
+    [ACTIVE FAULTS - Priority Order]
+      (none)
+
+Observation: PASS
+
+--------------------------------------------------------------------------------
+
+Mandatory Test Case 4: Critical Overheat
+
+• Temp: 115
+
+Expected: Critical fault, state escalation, log reason
+
+Actual:
+
+    --- NEW CYCLE ---
+
+    [Input] Enter Speed, Temp, Gear, Mode (0=OFF, 1=ACC, 2=IGN_ON, 3=FAULT): 0 115 0 0
+    [MAIN] Inputs read: speed=0 temp=115 gear=0 mode=0
+    [MAIN] Inputs validated: speed=0 temp=115 gear=0 mode=0
+    [MAIN] Mode updated: active=0 previous=1
+    [MAIN] Control checks done: cycle_flags=00010 priority=4
+    [MAIN] Fault status updated: persistent=00000
+    [STATE] Transition NORMAL -> DEGRADED : Major fault threshold reached (1 >= 1)
+    [MAIN] State evaluated: system_state=1
+
+    ---- CYCLE SUMMARY REPORT ---
+
+    [INPUT]
+      Speed         : 0 km/h
+      Temperature   : 115 C
+      Gear          : 0
+      Req. Mode     : OFF
+
+    [MODE]
+      Active Mode   : OFF
+      Current Mode  : OFF
+      Previous Mode : ACC
+
+    [FAULTS]
+      Cycle Flags     : 00010 [ CRITICAL_OVERHEAT ]
+      Persistent      : 00000 [ CLEAR ]
+      Major Faults    : 1
+      Warnings        : 0
+      Critical Faults : 1
+      Reset Requested : NO
+
+    [STATE]
+      System State : DEGRADED
+
+    [WARNINGS]
+
+    [ACTIVE FAULTS - Priority Order]
+      1. CRITICAL_OVERHEAT
+
+Observation: PASS
+
+--------------------------------------------------------------------------------
+
+Mandatory Test Case 5: Invalid Gear
+
+• Gear: 9
+
+Expected: Invalid gear fault, safe handling
+
+Actual:
+
+    --- NEW CYCLE ---
+
+    [Input] Enter Speed, Temp, Gear, Mode (0=OFF, 1=ACC, 2=IGN_ON, 3=FAULT): 0 0 9 0
+    [MAIN] Inputs read: speed=0 temp=0 gear=9 mode=0
+    [INPUT] Invalid gear: 9 - retaining last valid (0)
+    [MAIN] Inputs validated: speed=0 temp=0 gear=0 mode=0
+    [MAIN] Mode updated: active=0 previous=1
+    [MAIN] Control checks done: cycle_flags=01000 priority=3
+    [MAIN] Fault status updated: persistent=00000
+    [STATE] Transition NORMAL -> DEGRADED : Major fault threshold reached (1 >= 1)
+    [MAIN] State evaluated: system_state=1
+
+    ---- CYCLE SUMMARY REPORT ---
+
+    [INPUT]
+      Speed         : 0 km/h
+      Temperature   : 0 C
+      Gear          : 0 (invalid 9 rejected)
+      Req. Mode     : OFF
+
+    [MODE]
+      Active Mode   : OFF
+      Current Mode  : OFF
+      Previous Mode : ACC
+
+    [FAULTS]
+      Cycle Flags     : 01000 [ INVALID_GEAR ]
+      Persistent      : 00000 [ CLEAR ]
+      Major Faults    : 1
+      Warnings        : 0
+      Critical Faults : 0
+      Reset Requested : NO
+
+    [STATE]
+      System State : DEGRADED
+
+    [WARNINGS]
+
+    [ACTIVE FAULTS - Priority Order]
+      2. INVALID_GEAR
+
+Observation: PASS
+
+--------------------------------------------------------------------------------
+
+Mandatory Test Case 6: Illegal Mode Transition
+
+• OFF → IGNITION_ON directly
+
+Expected: Illegal transition detected, FAULT mode or defined safe behaviour
+
+Actual:
+
+    --- NEW CYCLE ---
+
+    [Input] Enter Speed, Temp, Gear, Mode (0=OFF, 1=ACC, 2=IGN_ON, 3=FAULT): 80 40 3 2
+    [MAIN] Inputs read: speed=80 temp=40 gear=3 mode=2
+    [MAIN] Inputs validated: speed=80 temp=40 gear=3 mode=2
+    [MODE] Illegal transition 0 -> 2 - forcing FAULT
+    [MAIN] Mode updated: active=3 previous=0
+    [MAIN] Control checks done: cycle_flags=00000 priority=0
+    [MAIN] Fault status updated: persistent=00000
+    [STATE] Transition NORMAL -> DEGRADED : Major fault threshold reached (1 >= 1)
+    [MAIN] State evaluated: system_state=1
+
+    ---- CYCLE SUMMARY REPORT ---
+
+    [INPUT]
+      Speed         : 80 km/h
+      Temperature   : 40 C
+      Gear          : 3
+      Req. Mode     : IGNITION_ON
+
+    [MODE]
+      Active Mode   : FAULT
+      Current Mode  : FAULT
+      Previous Mode : OFF
+
+    [FAULTS]
+      Cycle Flags     : 00000 [ CLEAR ]
+      Persistent      : 00000 [ CLEAR ]
+      Major Faults    : 1
+      Warnings        : 0
+      Critical Faults : 0
+      Reset Requested : NO
+
+    [STATE]
+      System State : DEGRADED
+
+    [WARNINGS]
+
+    [ACTIVE FAULTS - Priority Order]
+      (none)
+
+Observation: PASS
+
+--------------------------------------------------------------------------------
+
+Mandatory Test Case 7: Multiple Faults in One Cycle
+
+• Speed: 140
+• Temp: 120
+• Gear: 9
+
+Expected: Multiple faults set, priority respected, state escalated
+
+Actual:
+
+    --- NEW CYCLE ---
+
+    [Input] Enter Speed, Temp, Gear, Mode (0=OFF, 1=ACC, 2=IGN_ON, 3=FAULT): 140 120 9 2
+    [MAIN] Inputs read: speed=140 temp=120 gear=9 mode=2
+    [INPUT] Invalid gear: 9 - retaining last valid (0)
+    [MAIN] Inputs validated: speed=140 temp=120 gear=0 mode=2
+    [MAIN] Mode updated: active=2 previous=1
+    [MAIN] Control checks done: cycle_flags=01011 priority=4
+    [MAIN] Fault status updated: persistent=00000
+    [STATE] Transition NORMAL -> DEGRADED : Major fault threshold reached (2 >= 1)
+    [MAIN] State evaluated: system_state=1
+
+    ---- CYCLE SUMMARY REPORT ---
+
+    [INPUT]
+      Speed         : 140 km/h
+      Temperature   : 120 C
+      Gear          : 0 (invalid 9 rejected)
+      Req. Mode     : IGNITION_ON
+
+    [MODE]
+      Active Mode   : IGNITION_ON
+      Current Mode  : IGNITION_ON
+      Previous Mode : ACC
+
+    [FAULTS]
+      Cycle Flags     : 01011 [ OVERSPEED | CRITICAL_OVERHEAT | INVALID_GEAR ]
+      Persistent      : 00000 [ CLEAR ]
+      Major Faults    : 2
+      Warnings        : 0
+      Critical Faults : 1
+      Reset Requested : NO
+
+    [STATE]
+      System State : DEGRADED
+
+    [WARNINGS]
+
+    [ACTIVE FAULTS - Priority Order]
+      1. CRITICAL_OVERHEAT
+      2. INVALID_GEAR
+      3. OVERSPEED
+
+Observation: PASS
+
+--------------------------------------------------------------------------------
+
+Mandatory Test Case 8: Persistent Fault Across Cycles
+
+• same critical fault repeated for 3 cycles
+
+Expected: fault count increases, persistent behaviour visible, SAFE state reached if rule
+Requires
+
+Actual:
+
+    --- NEW CYCLE --- (Cycle 1)
+
+    [Input] Enter Speed, Temp, Gear, Mode (0=OFF, 1=ACC, 2=IGN_ON, 3=FAULT): 80 140 3 2
+    [MAIN] Inputs read: speed=80 temp=140 gear=3 mode=2
+    [MAIN] Inputs validated: speed=80 temp=140 gear=3 mode=2
+    [MAIN] Mode updated: active=2 previous=1
+    [MAIN] Control checks done: cycle_flags=00010 priority=4
+    [MAIN] Fault status updated: persistent=00000
+    [STATE] Transition NORMAL -> DEGRADED : Major fault threshold reached (1 >= 1)
+    [MAIN] State evaluated: system_state=1
+
+    ---- CYCLE SUMMARY REPORT ---
+
+    [INPUT]
+      Speed         : 80 km/h
+      Temperature   : 140 C
+      Gear          : 3
+      Req. Mode     : IGNITION_ON
+
+    [MODE]
+      Active Mode   : IGNITION_ON
+      Current Mode  : IGNITION_ON
+      Previous Mode : ACC
+
+    [FAULTS]
+      Cycle Flags     : 00010 [ CRITICAL_OVERHEAT ]
+      Persistent      : 00000 [ CLEAR ]
+      Major Faults    : 1
+      Warnings        : 0
+      Critical Faults : 1
+      Reset Requested : NO
+
+    [STATE]
+      System State : DEGRADED
+
+    [WARNINGS]
+
+    [ACTIVE FAULTS - Priority Order]
+      1. CRITICAL_OVERHEAT
+
+    --- NEW CYCLE --- (Cycle 2)
+
+    [Input] Enter Speed, Temp, Gear, Mode (0=OFF, 1=ACC, 2=IGN_ON, 3=FAULT): 80 140 3 2
+    [MAIN] Inputs read: speed=80 temp=140 gear=3 mode=2
+    [MAIN] Inputs validated: speed=80 temp=140 gear=3 mode=2
+    [MAIN] Mode updated: active=2 previous=2
+    [MAIN] Control checks done: cycle_flags=00010 priority=4
+    [MAIN] Fault status updated: persistent=00000
+    [STATE] Transition DEGRADED -> SAFE : Critical fault count escalated from DEGRADED (2 >= 2)
+    [MAIN] State evaluated: system_state=2
+
+    ---- CYCLE SUMMARY REPORT ---
+
+    [INPUT]
+      Speed         : 80 km/h
+      Temperature   : 140 C
+      Gear          : 3
+      Req. Mode     : IGNITION_ON
+
+    [MODE]
+      Active Mode   : IGNITION_ON
+      Current Mode  : IGNITION_ON
+      Previous Mode : IGNITION_ON
+
+    [FAULTS]
+      Cycle Flags     : 00010 [ CRITICAL_OVERHEAT ]
+      Persistent      : 00000 [ CLEAR ]
+      Major Faults    : 2
+      Warnings        : 0
+      Critical Faults : 2
+      Reset Requested : NO
+
+    [STATE]
+      System State : SAFE
+
+    [WARNINGS]
+
+    [ACTIVE FAULTS - Priority Order]
+      1. CRITICAL_OVERHEAT
+
+    --- NEW CYCLE --- (Cycle 3)
+
+    [Input] Enter Speed, Temp, Gear, Mode (0=OFF, 1=ACC, 2=IGN_ON, 3=FAULT): 80 140 3 2
+    [MAIN] Inputs read: speed=80 temp=140 gear=3 mode=2
+    [MAIN] Inputs validated: speed=80 temp=140 gear=3 mode=2
+    [MAIN] Mode updated: active=2 previous=2
+    [MAIN] Control checks done: cycle_flags=00010 priority=4
+    [MAIN] Fault status updated: persistent=00010
+    [MAIN] State evaluated: system_state=2
+
+    ---- CYCLE SUMMARY REPORT ---
+
+    [INPUT]
+      Speed         : 80 km/h
+      Temperature   : 140 C
+      Gear          : 3
+      Req. Mode     : IGNITION_ON
+
+    [MODE]
+      Active Mode   : IGNITION_ON
+      Current Mode  : IGNITION_ON
+      Previous Mode : IGNITION_ON
+
+    [FAULTS]
+      Cycle Flags     : 00010 [ CRITICAL_OVERHEAT ]
+      Persistent      : 00010 [ CRITICAL_OVERHEAT ]
+      Major Faults    : 3
+      Warnings        : 0
+      Critical Faults : 3
+      Reset Requested : NO
+
+    [STATE]
+      System State : SAFE
+
+    [WARNINGS]
+
+    [ACTIVE FAULTS - Priority Order]
+      1. CRITICAL_OVERHEAT
+
+Observation: PASS
+
+--------------------------------------------------------------------------------
+
+Mandatory Test Case 9: Recovery / Reset Logic
+
+• return values to normal after prior warnings
+
+Expected: team-defined recovery behaviour documented clearly
+
+Actual:
+
+    --- NEW CYCLE --- (Step 1 - Still in SAFE state)
+
+    [Input] Enter Speed, Temp, Gear, Mode (0=OFF, 1=ACC, 2=IGN_ON, 3=FAULT): 80 140 3 2
+    [MAIN] Inputs read: speed=80 temp=140 gear=3 mode=2
+    [MAIN] Inputs validated: speed=80 temp=140 gear=3 mode=2
+    [MAIN] Mode updated: active=2 previous=2
+    [MAIN] Control checks done: cycle_flags=00010 priority=4
+    [MAIN] Fault status updated: persistent=00010
+    [MAIN] State evaluated: system_state=2
+
+    ---- CYCLE SUMMARY REPORT ---
+
+    [INPUT]
+      Speed         : 80 km/h
+      Temperature   : 140 C
+      Gear          : 3
+      Req. Mode     : IGNITION_ON
+
+    [MODE]
+      Active Mode   : IGNITION_ON
+      Current Mode  : IGNITION_ON
+      Previous Mode : IGNITION_ON
+
+    [FAULTS]
+      Cycle Flags     : 00010 [ CRITICAL_OVERHEAT ]
+      Persistent      : 00010 [ CRITICAL_OVERHEAT ]
+      Major Faults    : 3
+      Warnings        : 0
+      Critical Faults : 3
+      Reset Requested : NO
+
+    [STATE]
+      System State : SAFE
+
+    [WARNINGS]
+
+    [ACTIVE FAULTS - Priority Order]
+      1. CRITICAL_OVERHEAT
+
+    --- NEW CYCLE --- (Step 2 - Watchdog Reset & Recovery)
+
+    [Input] Enter Speed, Temp, Gear, Mode (0=OFF, 1=ACC, 2=IGN_ON, 3=FAULT): 0 0 0 0
+    [MAIN] Inputs read: speed=0 temp=0 gear=0 mode=0
+    [WATCHDOG] 2 continuous SAFE cycles detected. Triggering system reset..
+    [STATE] System initialised: state=NORMAL, mode=OFF
+    [MAIN] Inputs validated: speed=0 temp=0 gear=0 mode=0
+    [MAIN] Mode updated: active=0 previous=0
+    [MAIN] Control checks done: cycle_flags=00000 priority=0
+    [MAIN] Fault status updated: persistent=00000
+    [MAIN] State evaluated: system_state=0
+
+    ---- CYCLE SUMMARY REPORT ---
+
+    [INPUT]
+      Speed         : 0 km/h
+      Temperature   : 0 C
+      Gear          : 0
+      Req. Mode     : OFF
+
+    [MODE]
+      Active Mode   : OFF
+      Current Mode  : OFF
+      Previous Mode : OFF
+
+    [FAULTS]
+      Cycle Flags     : 00000 [ CLEAR ]
+      Persistent      : 00000 [ CLEAR ]
+      Major Faults    : 0
+      Warnings        : 0
+      Critical Faults : 0
+      Reset Requested : NO
+
+    [STATE]
+      System State : NORMAL
+
+    [WARNINGS]
+
+    [ACTIVE FAULTS - Priority Order]
+      (none)
+
+Observation: PASS
+
+================================================================================
+END OF REPORT
+================================================================================
+Total Test Cases : 9
+Total Images     : 12
+All Results      : PASS
