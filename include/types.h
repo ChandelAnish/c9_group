@@ -1,0 +1,63 @@
+#ifndef TYPES_H
+#define TYPES_H
+
+#include <stdint.h>
+
+typedef enum
+{
+    MODE_OFF     = 0,
+    MODE_ACC  = 1,
+    MODE_IGNITION_ON   = 2,
+    MODE_FAULT     = 3,
+    MODE_INVALID = 4   
+} Mode;
+
+typedef struct
+{
+    uint16_t speed;        
+    int16_t temperature;  
+    uint8_t gear;         
+    Mode    mode;         
+} VehicleInput;
+
+typedef enum
+{
+    NORMAL   = 0,
+    DEGRADED = 1,
+    SAFE     = 2
+} SystemState;
+
+typedef struct
+{
+    uint8_t major_fault_count;
+    uint8_t warning_count;
+    uint8_t critical_fault_count;
+    uint8_t reset_requested;
+    uint16_t current_cycle_flags; 
+    uint16_t persistent_flags;   
+    uint8_t  counters[5];        
+} FaultStatus;
+
+typedef enum {
+    PRIORITY_NONE = 0,
+    PRIORITY_HIGH_TEMP = 1,
+    PRIORITY_OVERSPEED = 2,
+    PRIORITY_INVALID_GEAR_MODE = 3,
+    PRIORITY_CRITICAL_OVERHEAT = 4
+} FaultPriority;
+
+typedef struct {
+SystemState system_state;
+    Mode active_mode;
+    Mode current_mode;
+    Mode previous_mode;
+    FaultPriority highest_priority_issue; 
+} VehicleStatus;
+
+//fault bits
+#define FAULT_BIT_OVERSPEED         (1U << 0)
+#define FAULT_BIT_CRITICAL_OVERHEAT (1U << 1)
+#define FAULT_BIT_HIGH_TEMP         (1U << 2)
+#define FAULT_BIT_INVALID_GEAR      (1U << 3)
+#define FAULT_BIT_INVALID_MODE      (1U << 4)
+#endif 

@@ -1,0 +1,214 @@
+#include "state.h"
+#include "types.h"
+#include "mode.h"
+#include "fault.h"
+
+#include <stdio.h>
+
+static SystemState s_current_state = NORMAL;
+
+static const char *state_to_str(SystemState s)
+{
+    switch (s)
+    {
+        case NORMAL:   return "NORMAL";
+        case DEGRADED: return "DEGRADED";
+        case SAFE:     return "SAFE";
+        default:       return "UNKNOWN";
+    }
+}
+
+static void log_transition(SystemState from, SystemState to, const char *reason)
+{
+    fprintf(stderr, "[STATE] Transition %s -> %s : %s\n",
+            state_to_str(from), state_to_str(to), reason);
+}
+
+//Initialise all system modules; seed status and faults with safe defaults
+void init_system(VehicleStatus *status, FaultStatus *faults)
+{
+    if (status == NULL || faults == NULL)
+    {
+        fprintf(stderr, "[STATE] NULL pointer\n");
+        return;
+    }
+
+    s_current_state = NORMAL;
+
+    status->system_state          = NORMAL;
+    status->active_mode           = MODE_OFF;
+    status->current_mode          = MODE_OFF;
+    status->previous_mode         = MODE_OFF;
+    status->highest_priority_issue = PRIORITY_NONE;
+
+    mode_init();
+    fault_init(faults);
+
+    faults->major_fault_count    = 0U;
+    faults->warning_count        = 0U;
+    faults->critical_fault_count = 0U;
+    faults->reset_requested      = 0U;
+
+    fprintf(stderr, "[STATE] System initialised: state=NORMAL, mode=OFF\n");
+}
+
+//Evaluate fault counts and update system_state in status
+void evaluate_system_state(VehicleStatus *status, FaultStatus *faults)
+{
+    SystemState next_state;
+
+    if (status == NULL || faults == NULL)
+    {
+        fprintf(stderr, "[STATE] evaluate_system_state: NULL pointer\n");
+        return;
+    }
+
+    switch (s_current_state)
+    {
+        case NORMAL:
+            if (faults->critical_fault_count >= STATE_CRITICAL_FAULT_THRESHOLD)
+            {
+                next_state = SAFE;
+                char reason[128];
+                snprintf(reason, sizeof(reason), "Critical fault threshold reached (%u >= %u)",
+                         (unsigned int)faults->critical_fault_count, (unsigned int)STATE_CRITICAL_FAULT_THRESHOLD);
+                log_transition(s_current_state, next_state, reason);
+                s_current_state      = next_state;
+                status->system_state = next_state;
+            }
+            else if (faults->major_fault_count >= STATE_MAJOR_FAULT_THRESHOLD)
+            {
+                next_state = DEGRADED;
+                char reason[128];
+                snprintf(reason, sizeof(reason), "Major fault threshold reached (%u >= %u)",
+                         (unsigned int)faults->major_fault_count, (unsigned int)STATE_MAJOR_FAULT_THRESHOLD);
+                log_transition(s_current_state, next_state, reason);
+                s_current_state      = next_state;
+                status->system_state = next_state;
+            }
+            else if (faults->warning_count >= STATE_WARNING_REPEAT_THRESHOLD)
+            {
+                next_state = DEGRADED;
+                char reason[128];
+                snprintf(reason, sizeof(reason), "Warning repeat threshold reached (%u >= %u)",
+                         (unsigned int)faults->warning_count, (unsigned int)STATE_WARNING_REPEAT_THRESHOLD);
+                log_transition(s_current_state, next_state, reason);
+                s_current_state      = next_state;
+                status->system_state = next_state;
+            }
+            else if (faults->critical_fault_count >= 1)
+            {
+                next_state = DEGRADED;
+                char reason[128];
+                snprintf(reason, sizeof(reason), "Critical fault detected (%u >= 1)",
+                         (unsigned int)faults->critical_fault_count);
+                log_transition(s_current_state, next_state, reason);
+                s_current_state      = next_state;
+                status->system_state = next_state;
+            }
+            else
+            {
+                //no change — system remains NORMAL
+            }
+            break;
+
+        case DEGRADED:
+            if (faults->critical_fault_count >= STATE_CRITICAL_FAULT_THRESHOLD)
+            {
+                next_state = SAFE;
+                char reason[128];
+                snprintf(reason, sizeof(reason), "Critical fault count escalated from DEGRADED (%u >= %u)",
+                         (unsigned int)faults->critical_fault_count, (unsigned int)STATE_CRITICAL_FAULT_THRESHOLD);
+                log_transition(s_current_state, next_state, reason);
+                s_current_state      = next_state;
+                status->system_state = next_state;
+            }
+            else if (faults->major_fault_count == 0U && faults->warning_count == 0U)
+            {
+                next_state = NORMAL;
+                log_transition(s_current_state, next_state,
+                               "faults cleared - recovering to NORMAL");
+                s_current_state      = next_state;
+                status->system_state = next_state;
+            }
+            else
+            {
+                //no change — remains DEGRADED
+            }
+            break;
+
+        case SAFE:
+            if (faults->reset_requested      == 1U &&
+                faults->critical_fault_count == 0U &&
+                faults->major_fault_count    == 0U)
+            {
+                next_state = NORMAL;
+                log_transition(s_current_state, next_state,
+                               "explicit reset accepted - all faults cleared");
+                s_current_state      = next_state;
+                status->system_state = next_state;
+            }
+            else
+            {
+                //SAFE is terminal without valid reset — no change
+            }
+            break;
+
+        default:
+            fprintf(stderr, "[STATE] Unknown state %d - forcing SAFE\n",
+                    (int)s_current_state);
+            s_current_state      = SAFE;
+            status->system_state = SAFE;
+            break;
+    }
+}
+
+//Return the current system state
+SystemState state_get_current(void)
+{
+    return s_current_state;
+}
+
+//Clear fault counters and arm reset flag so the next evaluate call can exit SAFE
+void state_request_reset(FaultStatus *faults)
+{
+    if (faults == NULL)
+    {
+        fprintf(stderr, "[STATE] NULL pointer\n");
+        return;
+    }
+
+    faults->major_fault_count    = 0U;
+    faults->warning_count        = 0U;
+    faults->critical_fault_count = 0U;
+    faults->reset_requested      = 1U;
+}
+
+//Reset the system state, returning it to safe defaults and clearing faults
+void reset_system_state(VehicleStatus *status, FaultStatus *faults, VehicleInput *input, uint8_t *safe_mode_cycle_count)
+{
+    if (status == NULL || faults == NULL || input == NULL || safe_mode_cycle_count == NULL)
+    {
+        fprintf(stderr, "[STATE] NULL pointer in reset_system_state\n");
+        return;
+    }
+
+    if (*safe_mode_cycle_count >= 2)
+    {
+        printf("[WATCHDOG] 2 continuous SAFE cycles detected. Triggering system reset...\n");
+    }
+    else
+    {
+        printf("[WATCHDOG] 0 0 0 0 input detected. Triggering system reset...\n");
+    }
+    
+    init_system(status, faults);
+    faults->reset_requested = 1;
+    *safe_mode_cycle_count = 0;
+    
+    // Force inputs to safe defaults so the reset cycle evaluates cleanly as NORMAL
+    input->speed = 0;
+    input->temperature = 0;
+    input->gear = 0;
+    input->mode = MODE_OFF;
+}
